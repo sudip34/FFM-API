@@ -14,14 +14,15 @@ public class NativeImageProcessor {
     static MethodHandle tintImageHandler;
 
     static {
-        var function = lookup.find("invert_image").orElseThrow();
+        MemorySegment address = lookup.find("invert_image").orElseThrow();
         invertImageHandler = linker.downcallHandle(
-                lookup.find("invert_image").orElseThrow(),
+                address,
                 FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_INT)
         );
 
+        MemorySegment address2 = lookup.find("tint_image").orElseThrow();
         tintImageHandler = linker.downcallHandle(
-                function,
+                address2,
                 FunctionDescriptor.ofVoid(
                         ValueLayout.ADDRESS,
                         ValueLayout.JAVA_INT,
@@ -32,7 +33,7 @@ public class NativeImageProcessor {
     }
 
     public static void invertImage(ByteBuffer buffer) throws Throwable {
-        try(var arena = Arena.ofConfined()){
+        try(Arena arena = Arena.ofConfined()){
             MemorySegment memorySegment = arena.allocate(buffer.remaining());
             memorySegment.copyFrom(MemorySegment.ofBuffer(buffer));
             invertImageHandler.invoke(memorySegment, buffer.remaining());
